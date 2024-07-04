@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Part 1 - Build a webapp stack with CloudFormation
+Description: Build a JavaWebapp stack with CloudFormation
 
 Parameters:
   VpcId:
@@ -17,12 +17,11 @@ Parameters:
   KeyName:
     Type: String
     Description: The name of the key pair to use for the instance
-    
 
   InstanceType:
     Type: String
     Description: The instance type to use for the instance
-  
+
 Resources:
   WebAppInstance:
     Type: AWS::EC2::Instance
@@ -30,7 +29,10 @@ Resources:
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      SubnetId: !Ref SubnetId
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          SubnetId: !Ref SubnetId
+          DeviceIndex: 0
       Tags:
         - Key: Name
           Value: WebAppInstance
@@ -41,7 +43,7 @@ Resources:
           apt-get install -y docker.io
           systemctl start docker
           systemctl enable docker
-          
+
   WebAppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
