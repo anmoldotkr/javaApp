@@ -39,17 +39,15 @@ pipeline {
     }
     
     post {
-        always {
-            script {
-                echo 'Cleaning up workspace...'
-                cleanWs()
-            }
+       
+        success {
+            echo 'Build succeeded!'
         }
         failure {
             echo 'Build failed. Please check the logs for details.'
         }
-        success {
-            echo 'Build succeeded!'
+        always {
+            cleanWs()  
         }
     }
 }
