@@ -12,7 +12,7 @@ pipeline {
         string(name: 'ImageId', description: 'Enter ami image')
         string(name: 'VpcId', description: 'Enter your VPC id')
         string(name: 'SubnetId', description: 'Enter your subnet')
-        string(name: 'AwsRegion', description: 'Enter your AwsRegion')
+        // string(name: 'AwsRegion', description: 'Enter your AwsRegion')
     }
     
     stages {
@@ -28,7 +28,6 @@ pipeline {
                         aws cloudformation deploy \
                         --stack-name ${params.STACK_NAME} \
                         --template-file ./ec2.yml \
-                        --region ${params.AwsRegion}
                         --parameter-overrides \
                         InstanceType=${params.InstanceType} \
                         ImageId=${params.ImageId} \
