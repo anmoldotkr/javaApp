@@ -40,8 +40,10 @@ pipeline {
     
     post {
         always {
-            echo 'Cleaning up workspace...'
-            cleanWs()
+            script {
+                echo 'Cleaning up workspace...'
+                cleanWs()
+            }
         }
         failure {
             echo 'Build failed. Please check the logs for details.'
