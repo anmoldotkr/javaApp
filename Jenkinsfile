@@ -27,13 +27,14 @@ pipeline {
                     sh """
                         aws cloudformation deploy \
                         --stack-name ${params.STACK_NAME} \
-                        --region ${params.AwsRegion}
                         --template-file ./ec2.yml \
+                        --region ${params.AwsRegion}
                         --parameter-overrides \
                         InstanceType=${params.InstanceType} \
                         ImageId=${params.ImageId} \
                         VpcId=${params.VpcId} \
-                        SubnetId=${params.SubnetId}
+                        SubnetId=${params.SubnetId} \
+                        
                     """
                 }
             }
