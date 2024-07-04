@@ -17,6 +17,7 @@ Parameters:
   KeyName:
     Type: String
     Description: The name of the key pair to use for the instance
+    
 
   InstanceType:
     Type: String

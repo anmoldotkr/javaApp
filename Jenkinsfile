@@ -13,6 +13,7 @@ pipeline {
         string(name: 'VpcId', description: 'Enter your VPC id')
         string(name: 'SubnetId', description: 'Enter your subnet')
         string(name: 'AwsRegion', description: 'Enter your AwsRegion')
+        string(name: 'KeyName', description: 'Enter your .pem key Name')
     }
     
     stages {
@@ -33,6 +34,7 @@ pipeline {
                         ImageId=${params.ImageId} \
                         VpcId=${params.VpcId} \
                         SubnetId=${params.SubnetId} \
+                        keyName=${params.KeyName}
                         --region=${params.AwsRegion}
                         
                     """
