@@ -33,7 +33,7 @@ pipeline {
                         ImageId=${params.ImageId} \
                         VpcId=${params.VpcId} \
                         SubnetId=${params.SubnetId} \
-                        AwsRegion=${params.AwsRegion}
+                        --region=${params.AwsRegion}
                         
                     """
                 }
