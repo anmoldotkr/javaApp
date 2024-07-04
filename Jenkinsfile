@@ -12,7 +12,7 @@ pipeline {
         string(name: 'ImageId', description: 'Enter ami image')
         string(name: 'VpcId', description: 'Enter your VPC id')
         string(name: 'SubnetId', description: 'Enter your subnet')
-        // string(name: 'AwsRegion', description: 'Enter your AwsRegion')
+        string(name: 'AwsRegion', description: 'Enter your AwsRegion')
     }
     
     stages {
@@ -33,6 +33,7 @@ pipeline {
                         ImageId=${params.ImageId} \
                         VpcId=${params.VpcId} \
                         SubnetId=${params.SubnetId} \
+                        AwsRegion=${params.AwsRegion}
                         
                     """
                 }
