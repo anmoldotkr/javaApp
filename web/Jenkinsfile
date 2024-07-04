@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_SESSION_TOKEN = credentials('aws-session-token')
+    }
+
+    parameters {
+        string(name: 'STACK_NAME', description: 'Enter your stack name')
+        string(name: 'INSTANCE_ID', description: 'Enter the instance ID of the EC2 instance')
+        string(name: 'DOCKER_IMAGE'description: 'Enter your Docker Image')
+    }
+
+    stages {
+        stage('Get EC2 Public DNS') {
+            steps {
+                 withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws_creds',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+                   ]])
+                script {
+                    env.PUBLIC_DNS = sh(script: """
+                        aws ec2 describe-instances \
+                        --instance-ids ${params.INSTANCE_ID} \
+                        --query "Reservations[0].Instances[0].PublicDnsName" \
+                        --output text
+                    """, returnStdout: true).trim()
+                }
+            }
+        }
+
+        stage('Install Docker on EC2') {
+            steps {
+                sshagent(['your-ssh-key-credentials-id']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ec2-user@${env.PUBLIC_DNS} '
+                            sudo apt update -y && 
+                            sudo apt install -y docker && 
+                            sudo systemctl start docker && 
+                            sudo systemctl enable docker && 
+                            docker pull ${DOCKER_IMAGE} && 
+                            docker run -d -p 8081:8081 ${DOCKER_IMAGE}
+                        '
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up workspace...'
+            cleanWs()
+        }
+        failure {
+            echo 'Build failed. Please check the logs for details.'
+        }
+        success {
+            echo 'Build succeeded!'
+        }
+    }
+}
