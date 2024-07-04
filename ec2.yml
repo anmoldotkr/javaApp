@@ -22,9 +22,6 @@ Parameters:
     Type: String
     Description: The instance type to use for the instance
   
-  AwsRegion:
-    Type: String
-    Description: Enter Region
 Resources:
   WebAppInstance:
     Type: AWS::EC2::Instance
