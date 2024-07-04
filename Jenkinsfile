@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_SESSION_TOKEN = credentials('aws-session-token')
+        AWS_SESSION_TOKEN = credentials('session-token')
         SSH_KEY = credentials('ec2-ssh-key')
     }
     
@@ -19,7 +19,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws',
+                    credentialsId: 'aws-cred',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
