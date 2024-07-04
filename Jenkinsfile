@@ -46,9 +46,7 @@ pipeline {
             echo 'Build failed. Please check the logs for details.'
         }
         always {
-            node {
-                cleanWs()
-            } 
+            cleanWs()
         }
     }
 }
