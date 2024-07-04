@@ -39,7 +39,6 @@ pipeline {
     }
     
     post {
-       
         success {
             echo 'Build succeeded!'
         }
@@ -47,7 +46,9 @@ pipeline {
             echo 'Build failed. Please check the logs for details.'
         }
         always {
-            cleanWs()  
+            node {
+                cleanWs()
+            } 
         }
     }
 }
