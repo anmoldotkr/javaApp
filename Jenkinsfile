@@ -11,6 +11,7 @@ pipeline {
         string(name: 'InstanceType', description: 'Enter your Instance type')
         string(name: 'ImageId', description: 'Enter ami image')
         string(name: 'VpcId', description: 'Enter your VPC id')
+        string(name: 'SubnetId', description: 'Enter your subnet')
     }
     
     stages {
@@ -29,7 +30,8 @@ pipeline {
                         --parameter-overrides \
                         InstanceType=${params.InstanceType} \
                         ImageId=${params.ImageId} \
-                        VpcId=${params.VpcId}
+                        VpcId=${params.VpcId} \
+                        SubnetId=${params.SubnetId}
                     """
                 }
             }
