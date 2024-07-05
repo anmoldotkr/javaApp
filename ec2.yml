@@ -78,7 +78,6 @@
 
 
 # ---------- this is with igw and route table
-
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Build a JavaWebapp stack with CloudFormation
 
@@ -110,12 +109,12 @@ Resources:
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      SecurityGroupIds:
-        - !Ref WebAppSecurityGroup
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           SubnetId: !Ref SubnetId
           DeviceIndex: 0
+          GroupSet:
+            - !Ref WebAppSecurityGroup
       Tags:
         - Key: Name
           Value: WebAppInstance
