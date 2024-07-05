@@ -25,19 +25,34 @@ pipeline {
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
-                    sh """
-                        aws cloudformation deploy \
-                        --stack-name ${params.STACK_NAME} \
-                        --template-file ./ec2.yml \
-                        --parameter-overrides \
-                        InstanceType=${params.InstanceType} \
-                        ImageId=${params.ImageId} \
-                        VpcId=${params.VpcId} \
-                        SubnetId=${params.SubnetId} \
-                        KeyName=${params.KeyName} \
-                        --region=${params.AwsRegion}
+                    script {
+                        sh """
+                            aws cloudformation deploy \
+                            --stack-name ${params.STACK_NAME} \
+                            --template-file ./ec2.yml \
+                            --parameter-overrides \
+                            InstanceType=${params.InstanceType} \
+                            ImageId=${params.ImageId} \
+                            VpcId=${params.VpcId} \
+                            SubnetId=${params.SubnetId} \
+                            KeyName=${params.KeyName} \
+                            --region=${params.AwsRegion}
+                        """
                         
-                    """
+                        // Fetch the EC2 instance ID
+                        def instanceId = sh(script: "aws cloudformation describe-stack-resources --stack-name ${params.STACK_NAME} --query 'StackResources[?LogicalResourceId==`WebAppInstance`].PhysicalResourceId' --output text --region ${params.AwsRegion}", returnStdout: true).trim()
+                        echo "EC2 Instance ID: ${instanceId}"
+                        
+                        // Fetch the public IP of the EC2 instance
+                        def publicIp = sh(script: "aws ec2 describe-instances --instance-ids ${instanceId} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text --region ${params.AwsRegion}", returnStdout: true).trim()
+                        echo "EC2 Public IP: ${publicIp}"
+                        
+                        // Store the public IP in a file
+                        writeFile file: 'instance_details.txt', text: "EC2_IP=${publicIp}\nINSTANCE_ID=${instanceId}"
+                        
+                        // Archive the file for the second job to access
+                        archiveArtifacts artifacts: 'instance_details.txt'
+                    }
                 }
             }
         }

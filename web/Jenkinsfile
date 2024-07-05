@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_SESSION_TOKEN = credentials('aws-session-token')
+        AWS_SESSION_TOKEN = credentials('session-token')
     }
 
     parameters {
@@ -16,7 +16,7 @@ pipeline {
             steps {
                  withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws_creds',
+                    credentialsId: 'aws',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
                    ]])
@@ -36,12 +36,9 @@ pipeline {
                 sshagent(['your-ssh-key-credentials-id']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ec2-user@${env.PUBLIC_DNS} '
-                            sudo apt update -y && 
-                            sudo apt install -y docker && 
-                            sudo systemctl start docker && 
-                            sudo systemctl enable docker && 
-                            docker pull ${DOCKER_IMAGE} && 
-                            docker run -d -p 8081:8081 ${DOCKER_IMAGE}
+                          
+                            sudo docker pull ${DOCKER_IMAGE} && 
+                            sudo docker run -d -p 8081:8081 ${DOCKER_IMAGE}
                         '
                     """
                 }
