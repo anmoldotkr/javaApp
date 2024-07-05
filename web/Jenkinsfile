@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         SSH_KEY = credentials('ec2-ssh-key')
+        AWS_SESSION_TOKEN = credentials('session-token')
+
     }
 
     parameters {
@@ -14,7 +16,7 @@ pipeline {
         stage('Retrieve Instance Details') {
             steps {
                 // Copy the archived file from the first job
-                copyArtifacts(projectName: 'FirstJobName', filter: 'instance_details.txt', target: '.', flatten: true)
+                copyArtifacts(projectName: 'ec2Instance', filter: 'instance_details.txt', target: '.', flatten: true)
 
                 // Read the instance details from the file
                 script {
@@ -39,7 +41,6 @@ pipeline {
                     credentialsId: 'aws',
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-                    sessionTokenVariable: 'AWS_SESSION_TOKEN'
                 ]]) {
                     sshagent(['your-ssh-key-credentials-id']) {
                         sh """
