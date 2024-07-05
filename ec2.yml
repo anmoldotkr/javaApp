@@ -1,3 +1,84 @@
+# AWSTemplateFormatVersion: '2010-09-09'
+# Description: Build a JavaWebapp stack with CloudFormation
+
+# Parameters:
+#   VpcId:
+#     Type: AWS::EC2::VPC::Id
+#     Description: Select the VPC where you want to deploy the resources
+
+#   SubnetId:
+#     Type: AWS::EC2::Subnet::Id
+#     Description: Select the subnet where you want to deploy the instance
+
+#   ImageId:
+#     Type: String
+#     Description: The ID of the AMI to use for the instance
+
+#   KeyName:
+#     Type: String
+#     Description: The name of the key pair to use for the instance
+
+#   InstanceType:
+#     Type: String
+#     Description: The instance type to use for the instance
+
+# Resources:
+#   WebAppInstance:
+#     Type: AWS::EC2::Instance
+#     Properties:
+#       ImageId: !Ref ImageId
+#       InstanceType: !Ref InstanceType
+#       KeyName: !Ref KeyName
+#       NetworkInterfaces:
+#         - AssociatePublicIpAddress: true
+#           SubnetId: !Ref SubnetId
+#           DeviceIndex: 0
+#           GroupSet:
+#             - !Ref WebAppSecurityGroup
+#       Tags:
+#         - Key: Name
+#           Value: WebAppInstance
+        
+#       UserData:
+#         Fn::Base64: !Sub |
+#           #!/bin/bash
+#           apt-get update -y
+#           apt-get install -y docker.io
+#           systemctl start docker
+#           systemctl enable docker
+
+#   WebAppSecurityGroup:
+#     Type: AWS::EC2::SecurityGroup
+#     Properties:
+#       GroupName: !Join
+#         - '-'
+#         - - webapp-security-group
+#           - dev
+#       GroupDescription: Allow HTTP/HTTPS and SSH inbound and outbound traffic
+#       VpcId: !Ref VpcId
+#       SecurityGroupIngress:
+#         - IpProtocol: tcp
+#           FromPort: 80
+#           ToPort: 80
+#           CidrIp: 0.0.0.0/0
+#         - IpProtocol: tcp
+#           FromPort: 8081
+#           ToPort: 8081
+#           CidrIp: 0.0.0.0/0
+#         - IpProtocol: tcp
+#           FromPort: 22
+#           ToPort: 22
+#           CidrIp: 0.0.0.0/0
+
+# Outputs:
+#   WebsiteURL:
+#     Value: !Sub http://${WebAppInstance.PublicDnsName}
+#     Description: WebApp URL
+
+
+
+# ---------- this is with igw and route table
+
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Build a JavaWebapp stack with CloudFormation
 
@@ -23,12 +104,41 @@ Parameters:
     Description: The instance type to use for the instance
 
 Resources:
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VpcId
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetId
+      RouteTableId: !Ref PublicRouteTable
+
   WebAppInstance:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !Ref ImageId
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !Ref WebAppSecurityGroup
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           SubnetId: !Ref SubnetId
@@ -36,7 +146,6 @@ Resources:
       Tags:
         - Key: Name
           Value: WebAppInstance
-        
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
