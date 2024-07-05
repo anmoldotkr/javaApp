@@ -16,7 +16,7 @@ pipeline {
         stage('Retrieve Instance Details') {
             steps {
                 // Copy the archived file from the first job
-                copyArtifacts(projectName: 'ec2Instance', filter: 'instance_details.txt', target: '.', flatten: true)
+                copyArtifacts(projectName: 'JavaApp', filter: 'instance_details.txt', target: '.', flatten: true)
 
                 // Read the instance details from the file
                 script {
