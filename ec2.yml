@@ -104,33 +104,6 @@ Parameters:
     Description: The instance type to use for the instance
 
 Resources:
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-
-  InternetGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId: !Ref VpcId
-      InternetGatewayId: !Ref InternetGateway
-
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VpcId
-
-  PublicRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-
-  SubnetRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref SubnetId
-      RouteTableId: !Ref PublicRouteTable
-
   WebAppInstance:
     Type: AWS::EC2::Instance
     Properties:
