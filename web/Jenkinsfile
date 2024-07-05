@@ -2,45 +2,53 @@ pipeline {
     agent any
 
     environment {
-        AWS_SESSION_TOKEN = credentials('session-token')
+        SSH_KEY = credentials('ec2-ssh-key')
     }
 
     parameters {
         string(name: 'STACK_NAME', description: 'Enter your stack name')
-        string(name: 'INSTANCE_ID', description: 'Enter the instance ID of the EC2 instance')
-        string(name: 'DOCKER_IMAGE'description: 'Enter your Docker Image')
+        string(name: 'DOCKER_IMAGE', description: 'Enter your Docker Image')
     }
 
     stages {
-        stage('Get EC2 Public DNS') {
+        stage('Retrieve Instance Details') {
             steps {
-                 withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-                   ]])
+                // Copy the archived file from the first job
+                copyArtifacts(projectName: 'FirstJobName', filter: 'instance_details.txt', target: '.', flatten: true)
+
+                // Read the instance details from the file
                 script {
-                    env.PUBLIC_DNS = sh(script: """
-                        aws ec2 describe-instances \
-                        --instance-ids ${params.INSTANCE_ID} \
-                        --query "Reservations[0].Instances[0].PublicDnsName" \
-                        --output text
-                    """, returnStdout: true).trim()
+                    def instanceDetails = readFile('instance_details.txt').trim()
+                    def instanceMap = [:]
+                    instanceDetails.split('\n').each { line ->
+                        def (key, value) = line.split('=')
+                        instanceMap[key] = value
+                    }
+                    env.INSTANCE_ID = instanceMap['INSTANCE_ID']
+                    env.PUBLIC_DNS = instanceMap['EC2_IP']
+                    echo "EC2 Instance ID: ${env.INSTANCE_ID}"
+                    echo "EC2 Public DNS: ${env.PUBLIC_DNS}"
                 }
             }
         }
 
         stage('Install Docker on EC2') {
             steps {
-                sshagent(['your-ssh-key-credentials-id']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ec2-user@${env.PUBLIC_DNS} '
-                          
-                            sudo docker pull ${DOCKER_IMAGE} && 
-                            sudo docker run -d -p 8081:8081 ${DOCKER_IMAGE}
-                        '
-                    """
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+                    sessionTokenVariable: 'AWS_SESSION_TOKEN'
+                ]]) {
+                    sshagent(['your-ssh-key-credentials-id']) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ec2-user@${env.PUBLIC_DNS} '
+                                sudo docker pull ${params.DOCKER_IMAGE} && 
+                                sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}
+                            '
+                        """
+                    }
                 }
             }
         }
