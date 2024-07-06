@@ -14,7 +14,7 @@ pipeline {
                     withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')]) {
                         // Create an SSH command to execute the required commands on the EC2 instance
                         def sshCommand = """
-                            ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
+                            ssh -T -i ${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
                             sudo docker pull ${params.DOCKER_IMAGE}
                             sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}
                             EOF
@@ -22,7 +22,8 @@ pipeline {
                         
                         
                         // Execute the SSH command
-                        sh(script: sshCommand, returnStatus: true)
+                        sh sshCommand
+                        // sh(script: sshCommand, returnStatus: true)
                     }
                 }
             }
