@@ -10,20 +10,18 @@ pipeline {
         stage('SSH to EC2 and Run Docker Container') {
             steps {
                 script {
-                    // Load SSH key into environment variable
-                    withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-                        // Create an SSH command to execute the required commands on the EC2 instance
+                    // Load SSH key into SSH agent
+                    sshagent(credentials: ['ec2-ssh-key']) {
+                        // Create an SSH command to execute Docker commands on the EC2 instance
                         def sshCommand = """
-                            ssh -T -i ${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
+                            ssh -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
                             sudo docker pull ${params.DOCKER_IMAGE}
                             sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}
                             EOF
                         """
                         
-                        
                         // Execute the SSH command
                         sh sshCommand
-                        // sh(script: sshCommand, returnStatus: true)
                     }
                 }
             }
