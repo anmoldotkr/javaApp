@@ -39,24 +39,16 @@ pipeline {
                             --region=${params.AwsRegion}
                         """
 
-                        // Get the EC2 instance ID from CloudFormation stack outputs
-                        def describeStack = sh(script: "aws cloudformation describe-stacks --stack-name ${params.STACK_NAME} --region ${params.AwsRegion}", returnStdout: true).trim()
-                        echo "describeStack output: ${describeStack}"
-                        def stackOutput = readJSON text: describeStack
-                        def instanceId = stackOutput.Stacks[0].Outputs.find { it.OutputKey == 'InstanceId' }.OutputValue
-                        echo "EC2 Instance ID: ${instanceId}"
-
-                        // Get the EC2 instance public IP address
-                        def describeInstance = sh(script: "aws ec2 describe-instances --instance-ids ${instanceId} --region ${params.AwsRegion}", returnStdout: true).trim()
-                        echo "describeInstance output: ${describeInstance}"
-                        def instanceDetails = readJSON text: describeInstance
-                        def instanceIP = instanceDetails.Reservations[0].Instances[0].PublicIpAddress
-                        echo "EC2 Instance IP: ${instanceIP}"
+                         // Fetch the EC2 instance ID
+                        def instanceId = sh(script: "aws cloudformation describe-stack-resources --stack-name ${params.STACK_NAME} --query 'StackResources[?LogicalResourceId==`WebAppInstance`].PhysicalResourceId' --output text --region ${params.AwsRegion}", returnStdout: true).trim()
                         
-                        // Trigger the second job with the instance IP as a parameter
+                        // Fetch the public IP of the EC2 instance
+                        def publicIp = sh(script: "aws ec2 describe-instances --instance-ids ${instanceId} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text --region ${params.AwsRegion}", returnStdout: true).trim()
+                        
+                        // Trigger the second job and pass the EC2 instance details
                         build job: 'sshEc2', parameters: [
-                            string(name: 'INSTANCE_ID', value: instanceId),
-                            string(name: 'EC2_IP', value: instanceIP)
+                            string(name: 'EC2_IP', value: publicIp),
+                            string(name: 'DOCKER_IMAGE', value: 'your-docker-image') // You can modify this to be a parameter as well
                         ]
                     }
                 }
