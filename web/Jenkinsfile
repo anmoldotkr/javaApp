@@ -4,32 +4,22 @@ pipeline {
     environment {
         SSH_KEY = credentials('ec2-ssh-key')
         AWS_SESSION_TOKEN = credentials('session-token')
-
     }
 
     parameters {
         string(name: 'STACK_NAME', description: 'Enter your stack name')
         string(name: 'DOCKER_IMAGE', description: 'Enter your Docker Image')
+        string(name: 'INSTANCE_ID', description: 'EC2 Instance ID')
+        string(name: 'EC2_IP', description: 'EC2 Public IP Address')
     }
 
     stages {
         stage('Retrieve Instance Details') {
             steps {
-                // Copy the archived file from the first job
-                copyArtifacts(projectName: 'JavaApp', filter: 'instance_details.txt', target: '.', flatten: true)
-
-                // Read the instance details from the file
+                // Use the parameters passed from the first job
                 script {
-                    def instanceDetails = readFile('instance_details.txt').trim()
-                    def instanceMap = [:]
-                    instanceDetails.split('\n').each { line ->
-                        def (key, value) = line.split('=')
-                        instanceMap[key] = value
-                    }
-                    env.INSTANCE_ID = instanceMap['INSTANCE_ID']
-                    env.PUBLIC_DNS = instanceMap['EC2_IP']
-                    echo "EC2 Instance ID: ${env.INSTANCE_ID}"
-                    echo "EC2 Public DNS: ${env.PUBLIC_DNS}"
+                    echo "EC2 Instance ID: ${params.INSTANCE_ID}"
+                    echo "EC2 Public IP: ${params.EC2_IP}"
                 }
             }
         }
@@ -42,10 +32,10 @@ pipeline {
                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
                 ]]) {
-                    sshagent(['your-ssh-key-credentials-id']) {
+                    sshagent([SSH_KEY]) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@${env.PUBLIC_DNS} '
-                                sudo docker pull ${params.DOCKER_IMAGE} && 
+                            ssh -o StrictHostKeyChecking=no ec2-user@${params.EC2_IP} '
+                                sudo docker pull ${params.DOCKER_IMAGE} &&
                                 sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}
                             '
                         """
@@ -53,6 +43,15 @@ pipeline {
                 }
             }
         }
+        stage('Instance URL') {
+            steps {
+                script {
+                    echo "EC2 Instance ID: ${params.INSTANCE_ID}"
+                    echo "http://${params.EC2_IP}:8081"
+                }
+            }
+        }
+
     }
 
     post {
