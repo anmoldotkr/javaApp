@@ -45,11 +45,9 @@ pipeline {
                         // Fetch the public IP of the EC2 instance
                         def publicIp = sh(script: "aws ec2 describe-instances --instance-ids ${instanceId} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text --region ${params.AwsRegion}", returnStdout: true).trim()
                         
-                        // Trigger the second job and pass the EC2 instance details
-                        build job: 'sshEc2', parameters: [
-                            string(name: 'EC2_IP', value: publicIp),
-                            string(name: 'DOCKER_IMAGE', value: 'your-docker-image') // You can modify this to be a parameter as well
-                        ]
+                         // Print instance details
+                        echo "EC2 Instance ID: ${instanceId}"
+                        echo "Public IP Address: ${publicIp}"
                     }
                 }
             }

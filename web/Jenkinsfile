@@ -1,69 +1,43 @@
-pipeline {
+ pipeline {
     agent any
 
     environment {
         SSH_KEY = credentials('ec2-ssh-key')
-        AWS_SESSION_TOKEN = credentials('session-token')
     }
-
+    
     parameters {
-        string(name: 'STACK_NAME', description: 'Enter your stack name')
-        string(name: 'DOCKER_IMAGE', description: 'Enter your Docker Image')
-        string(name: 'INSTANCE_ID', description: 'EC2 Instance ID')
-        string(name: 'EC2_IP', description: 'EC2 Public IP Address')
+        string(name: 'EC2_IP', description: 'Enter your EC2 instance IP address')
+        string(name: 'DOCKER_IMAGE', description: 'Enter the Docker image to pull')
     }
 
     stages {
-        stage('Retrieve Instance Details') {
-            steps {
-                // Use the parameters passed from the first job
-                script {
-                    echo "EC2 Instance ID: ${params.INSTANCE_ID}"
-                    echo "EC2 Public IP: ${params.EC2_IP}"
-                }
-            }
-        }
-
-        stage('Install Docker on EC2') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-                ]]) {
-                    sshagent([SSH_KEY]) {
-                        sh """
-                            ssh -o StrictHostKeyChecking=no ec2-user@${params.EC2_IP} '
-                                sudo docker pull ${params.DOCKER_IMAGE} &&
-                                sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}
-                            '
-                        """
-                    }
-                }
-            }
-        }
-        stage('Instance URL') {
+        stage('SSH to EC2 and Run Docker Container') {
             steps {
                 script {
-                    echo "EC2 Instance ID: ${params.INSTANCE_ID}"
-                    echo "http://${params.EC2_IP}:8081"
+                    // Create an SSH command to execute the required commands on the EC2 instance
+                    def sshCommand = """
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ec2-user@${params.EC2_IP} << EOF
+                        sudo docker pull ${params.DOCKER_IMAGE}
+                        sudo docker run -d ${params.DOCKER_IMAGE}
+                        EOF
+                    """
+                    
+                    // Execute the SSH command
+                    sh sshCommand
                 }
             }
         }
-
     }
-
+    
     post {
-        always {
-            echo 'Cleaning up workspace...'
-            cleanWs()
+        success {
+            echo 'Docker container started successfully!'
         }
         failure {
-            echo 'Build failed. Please check the logs for details.'
+            echo 'Failed to start Docker container. Please check the logs for details.'
         }
-        success {
-            echo 'Build succeeded!'
+        always {
+            cleanWs()
         }
     }
 }
