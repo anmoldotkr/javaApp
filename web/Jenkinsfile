@@ -14,16 +14,19 @@
         stage('SSH to EC2 and Run Docker Container') {
             steps {
                 script {
-                    // Create an SSH command to execute the required commands on the EC2 instance
-                    def sshCommand = """
-                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
-                        sudo docker pull ${params.DOCKER_IMAGE}
-                        sudo docker run -d  -p 8081:8081 ${params.DOCKER_IMAGE}
-                        EOF
-                    """
-                    
-                    // Execute the SSH command
-                    sh sshCommand
+                    // Add SSH key to SSH agent
+                    sshagent(credentials: ['ec2-ssh-key']) {
+                        // Create an SSH command to execute the required commands on the EC2 instance
+                        def sshCommand = """
+                            ssh -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
+                            sudo docker pull ${params.DOCKER_IMAGE}
+                            sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}
+                            EOF
+                        """
+                        
+                        // Execute the SSH command
+                        sh sshCommand
+                    }
                 }
             }
         }
