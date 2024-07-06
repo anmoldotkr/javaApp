@@ -41,15 +41,19 @@ pipeline {
 
                         // Get the EC2 instance ID from CloudFormation stack outputs
                         def describeStack = sh(script: "aws cloudformation describe-stacks --stack-name ${params.STACK_NAME} --region ${params.AwsRegion}", returnStdout: true).trim()
-                        def stackOutput = readJSON(text: describeStack)
+                        echo "describeStack output: ${describeStack}"
+                        def stackOutput = readJSON text: describeStack
                         def instanceId = stackOutput.Stacks[0].Outputs.find { it.OutputKey == 'InstanceId' }.OutputValue
-                        
+                        echo "EC2 Instance ID: ${instanceId}"
+
                         // Get the EC2 instance public IP address
                         def describeInstance = sh(script: "aws ec2 describe-instances --instance-ids ${instanceId} --region ${params.AwsRegion}", returnStdout: true).trim()
-                        def instanceDetails = readJSON(text: describeInstance)
+                        echo "describeInstance output: ${describeInstance}"
+                        def instanceDetails = readJSON text: describeInstance
                         def instanceIP = instanceDetails.Reservations[0].Instances[0].PublicIpAddress
+                        echo "EC2 Instance IP: ${instanceIP}"
                         
-                       // Trigger the second job with the instance IP as a parameter
+                        // Trigger the second job with the instance IP as a parameter
                         build job: 'sshEc2', parameters: [
                             string(name: 'INSTANCE_ID', value: instanceId),
                             string(name: 'EC2_IP', value: instanceIP)
