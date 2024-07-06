@@ -16,9 +16,9 @@
                 script {
                     // Create an SSH command to execute the required commands on the EC2 instance
                     def sshCommand = """
-                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ec2-user@${params.EC2_IP} << EOF
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
                         sudo docker pull ${params.DOCKER_IMAGE}
-                        sudo docker run -d ${params.DOCKER_IMAGE}
+                        sudo docker run -d  -p 8081:8081 ${params.DOCKER_IMAGE}
                         EOF
                     """
                     
