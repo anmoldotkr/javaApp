@@ -10,23 +10,17 @@ pipeline {
         stage('SSH to EC2 and Run Docker Container') {
             steps {
                 script {
-                    // Load SSH key into environment variable
-                    withCredentials([string(credentialsId: 'ec2-ssh-key-1', variable: 'SSH_KEY')]) {
-                        // Save the SSH key to a file and set permissions
-                        def keyFile = "${env.WORKSPACE}/ec2_key.pem"
-                        writeFile file: keyFile, text: SSH_KEY
-                        sh "chmod 400 ${keyFile}"
-                        
+                    // Use sshagent to handle SSH key
+                    sshagent(['ec2-ssh-key']) {
                         // Create an SSH command to execute the required commands on the EC2 instance
-                        def sshCommand = """
-                            ssh -i ${keyFile} -o StrictHostKeyChecking=no ubuntu@${params.EC2_IP} << EOF
-                            sudo docker pull ${params.DOCKER_IMAGE}
-                            sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}
-                            EOF
-                        """
+                        def sshCommandPull = "ssh -o StrictHostKeyChecking=no -t ubuntu@${params.EC2_IP} sudo docker pull ${params.DOCKER_IMAGE}"
+                        def sshCommandRun = "ssh -o StrictHostKeyChecking=no -t ubuntu@${params.EC2_IP} sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}"
                         
-                        // Execute the SSH command
-                        sh sshCommand
+                        // Execute the SSH command to pull the Docker image
+                        sh sshCommandPull
+                        
+                        // Execute the SSH command to run the Docker container
+                        sh sshCommandRun
                     }
                 }
             }
