@@ -69,7 +69,3 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
 
-Outputs:
-  WebsiteURL:
-    Value: !Sub http://${WebAppInstance.PublicDnsName}
-    Description: WebApp URL
