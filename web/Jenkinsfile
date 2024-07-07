@@ -11,7 +11,7 @@ pipeline {
             steps {
                 script {
                     // Load SSH key into environment variable
-                    withCredentials([string(credentialsId: 'ec2-ssh-key', variable: 'SSH_KEY')]) {
+                    withCredentials([string(credentialsId: 'ec2-ssh-key-1', variable: 'SSH_KEY')]) {
                         // Save the SSH key to a file and set permissions
                         def keyFile = "${env.WORKSPACE}/ec2_key.pem"
                         writeFile file: keyFile, text: SSH_KEY
