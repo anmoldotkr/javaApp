@@ -22,6 +22,7 @@ pipeline {
                         // Execute the SSH command to run the Docker container
                         sh sshCommandRun
                     }
+                    
                 }
             }
         }
@@ -30,6 +31,7 @@ pipeline {
     post {
         success {
             echo 'Docker container started successfully!'
+            echo "http://${params.EC2_IP}:8081"
         }
         failure {
             echo 'Failed to start Docker container. Please check the logs for details.'

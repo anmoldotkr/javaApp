@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         AWS_SESSION_TOKEN = credentials('session-token')
-        SSH_KEY = credentials('ec2-ssh-key')
     }
     
     parameters {
