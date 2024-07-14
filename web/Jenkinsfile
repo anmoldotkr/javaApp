@@ -1,37 +1,41 @@
 pipeline {
     agent any
-    
     parameters {
-        string(name: 'EC2_IP', description: 'Enter your EC2 instance IP address')
+        string(name: 'Instance_ID', description: 'Enter your EC2 instance ID')
         string(name: 'DOCKER_IMAGE', description: 'Enter the Docker image to pull')
     }
-
+    environment {
+        AWS_REGION = 'us-east-1' // Change to your AWS region
+    }
     stages {
+        stage('Get EC2 Public IP') {
+            steps {
+                script {
+                    def ec2Ip = sh(
+                        script: "aws ec2 describe-instances --instance-ids ${params.Instance_ID} --region ${env.AWS_REGION} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text",
+                        returnStdout: true
+                    ).trim()
+                    env.EC2_IP = ec2Ip
+                }
+            }
+        }
+
         stage('SSH to EC2 and Run Docker Container') {
             steps {
                 script {
                     // Use sshagent to handle SSH key
-                    sshagent(['ec2-ssh-key']) {
+                    sshagent(['test-ec2-ssh-key']) {
                         // Create an SSH command to execute the required commands on the EC2 instance
-                        def sshCommandPull = "ssh -o StrictHostKeyChecking=no -t ubuntu@${params.EC2_IP} sudo docker pull ${params.DOCKER_IMAGE}"
-                        def sshCommandRun = "ssh -o StrictHostKeyChecking=no -t ubuntu@${params.EC2_IP} sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}"
-                        
-                        // Execute the SSH command to pull the Docker image
-                        sh sshCommandPull
-                        
-                        // Execute the SSH command to run the Docker container
-                        sh sshCommandRun
+                        sh "ssh -o StrictHostKeyChecking=no -t ubuntu@${env.EC2_IP} sudo docker pull ${params.DOCKER_IMAGE}"
+                        sh "ssh -o StrictHostKeyChecking=no -t ubuntu@${env.EC2_IP} sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}"
                     }
-                    
                 }
             }
         }
     }
-    
     post {
         success {
             echo 'Docker container started successfully!'
-            echo "http://${params.EC2_IP}:8081"
         }
         failure {
             echo 'Failed to start Docker container. Please check the logs for details.'

@@ -2,25 +2,25 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Build a JavaWebapp stack with CloudFormation
 
 Parameters:
-  VpcId:
-    Type: AWS::EC2::VPC::Id
-    Description: Select the VPC where you want to deploy the resources
-
-  SubnetId:
-    Type: AWS::EC2::Subnet::Id
-    Description: Select the subnet where you want to deploy the instance
-
   ImageId:
     Type: String
-    Description: The ID of the AMI to use for the instance
-
-  KeyName:
-    Type: String
-    Description: The name of the key pair to use for the instance
-
   InstanceType:
     Type: String
-    Description: The instance type to use for the instance
+  KeyName:
+    Type: String
+  environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stage
+      - testing
+    Default: dev
+  product:
+    Type: String
+    Default: Training
+  service:
+    Type: String
+    Default: vpc
 
 Resources:
   WebAppInstance:
@@ -31,10 +31,12 @@ Resources:
       KeyName: !Ref KeyName
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
-          SubnetId: !Ref SubnetId
+          SubnetId: !ImportValue 
+            'Fn::Sub': '${environment}-${product}-${service}-subnet-id'
           DeviceIndex: 0
           GroupSet:
-            - !Ref WebAppSecurityGroup
+            - !ImportValue 
+                'Fn::Sub': '${environment}-${product}-${service}-sg-id'
       Tags:
         - Key: Name
           Value: WebAppInstance
@@ -46,26 +48,27 @@ Resources:
           systemctl start docker
           systemctl enable docker
 
-  WebAppSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Join
-        - '-'
-        - - webapp-security-group
-          - dev
-      GroupDescription: Allow HTTP/HTTPS and SSH inbound and outbound traffic
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 8081
-          ToPort: 8081
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
+Outputs:
+  InstanceId:
+    Description: The Instance ID
+    Value: !Ref WebAppInstance
+  PublicIp:
+    Description: The Public IP of the instance
+    Value: !GetAtt WebAppInstance.PublicIp
 
+  VpcId:
+    Description: The VPC Id
+    Value: !ImportValue 
+      'Fn::Sub': '${environment}-${product}-${service}-vpc-id'
+  SubnetId:
+    Description: The Subnet Id
+    Value: !ImportValue 
+      'Fn::Sub': '${environment}-${product}-${service}-subnet-id'
+  SecurityGroupId:
+    Description: The Security Group Id
+    Value: !ImportValue 
+      'Fn::Sub': '${environment}-${product}-${service}-sg-id'
+  RouteTableId:
+    Description: The Route Table Id
+    Value: !ImportValue 
+      'Fn::Sub': '${environment}-${product}-${service}-rt-id'

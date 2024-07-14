@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create VPC, Public Subnet, IGW, Security Group, and Route Table
+
+Parameters:
+  environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stage
+      - testing
+    Default: dev
+  product:
+    Type: String
+    Default: Training
+  service:
+    Type: String
+    Default: vpc
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${product}-${service}"
+        - Key: Environment
+          Value: !Ref environment
+        - Key: Product
+          Value: !Ref product
+        - Key: Service
+          Value: !Ref service
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${product}-${service}-subnet"
+        - Key: Environment
+          Value: !Ref environment
+        - Key: Product
+          Value: !Ref product
+        - Key: Service
+          Value: !Ref service
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${product}-${service}-igw"
+        - Key: Environment
+          Value: !Ref environment
+        - Key: Product
+          Value: !Ref product
+        - Key: Service
+          Value: !Ref service
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${product}-${service}-rt"
+        - Key: Environment
+          Value: !Ref environment
+        - Key: Product
+          Value: !Ref product
+        - Key: Service
+          Value: !Ref service
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH and HTTP access
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8081
+          ToPort: 8081
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${product}-${service}-sg"
+        - Key: Environment
+          Value: !Ref environment
+        - Key: Product
+          Value: !Ref product
+        - Key: Service
+          Value: !Ref service
+
+Outputs:
+  VpcId:
+    Description: The VPC Id
+    Value: !Ref VPC
+    Export:
+      Name: !Sub "${environment}-${product}-${service}-id"
+
+  SubnetId:
+    Description: The Subnet Id
+    Value: !Ref PublicSubnet
+    Export:
+      Name: !Sub "${environment}-${product}-${service}-subnet-id"
+
+  SecurityGroupId:
+    Description: The Security Group Id
+    Value: !Ref SecurityGroup
+    Export:
+      Name: !Sub "${environment}-${product}-${service}-sg-id"
+
+  RouteTableId:
+    Description: The Route Table Id
+    Value: !Ref RouteTable
+    Export:
+      Name: !Sub "${environment}-${product}-${service}-rt-id"
+
+

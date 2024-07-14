@@ -1,19 +1,19 @@
 pipeline {
     agent any
-
     environment {
         AWS_SESSION_TOKEN = credentials('aws-session-token')
     }
-    
     parameters {
-        string(name: 'AwsRegion', description: 'Enter your stack name')
+        string(name: 'InstanceType', description: 'Enter your Instance type')
+        string(name: 'ImageId', description: 'Enter ami image')
+        string(name: 'KeyName', description: 'Enter your .pem key Name')
+        string(name: 'AwsRegion', description: 'Enter your .pem key Name')
         string(name: 'ENVIRONMENT', description: 'Enter the environment (dev, stage, testing)')
         string(name: 'PRODUCT', description: 'Enter the product name (default: Training)')
-        string(name: 'SERVICE', description: 'Enter the service name (default: s3)')
+        string(name: 'SERVICE', description: 'Enter the service name (default: EC2)')
     }
-    
     stages {
-        stage('Creating VPC') {
+        stage('Creating ec2 inside the vpc') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -25,15 +25,19 @@ pipeline {
                         sh """
                             aws cloudformation deploy \
                             --stack-name ${params.ENVIRONMENT}-${params.PRODUCT}-${params.SERVICE} \
+                            --template-file ./Training/Anmol/aws/service/ec2.yml \
+                            --parameter-overrides \
+                            InstanceType=${params.InstanceType} \
+                            ImageId=${params.ImageId} \
+                            KeyName=${params.KeyName} \
                             --region ${params.AwsRegion} \
-                            --template-file ./Training/Anmol/aws/service/vpc.yml
+
                         """
                     }
                 }
             }
         }
     }
-    
     post {
         success {
             echo 'Build succeeded!'
