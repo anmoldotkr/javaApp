@@ -50,7 +50,7 @@ pipeline {
                     sshagent(['ec2-ssh-key']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} '
-                            cd ${env.REPO_NAME} &&
+                            cd ${env.REPO_NAME}/demo &&
                             if [ -f Dockerfile ]; then
                                 sudo docker build -t my-app .
                             else
