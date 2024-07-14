@@ -26,7 +26,7 @@ pipeline {
                             aws cloudformation deploy \
                             --stack-name ${params.ENVIRONMENT}-${params.PRODUCT}-${params.SERVICE} \
                             --region ${params.AwsRegion} \
-                            --template-file ./Training/Anmol/aws/service/vpc.yml
+                            --template-file ./vpc.yml
                         """
                     }
                 }

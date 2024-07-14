@@ -25,7 +25,7 @@ pipeline {
                         sh """
                             aws cloudformation deploy \
                             --stack-name ${params.ENVIRONMENT}-${params.PRODUCT}-${params.SERVICE} \
-                            --template-file ./Training/Anmol/aws/service/ec2.yml \
+                            --template-file ./ec2.yml \
                             --parameter-overrides \
                             InstanceType=${params.InstanceType} \
                             ImageId=${params.ImageId} \
