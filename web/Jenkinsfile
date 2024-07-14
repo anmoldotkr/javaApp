@@ -2,29 +2,58 @@ pipeline {
     agent any
     parameters {
         string(name: 'Instance_ID', description: 'Enter your EC2 instance ID')
-        string(name: 'DOCKER_IMAGE', description: 'Enter the Docker image to pull')
+        string(name: 'REPO_URL', description: 'Enter the GitHub repository URL')
+        string(name: 'AwsRegion', description: 'Enter your AWS region')
+    }
+    environment {
+        AWS_REGION = "${params.AwsRegion}"
     }
     stages {
         stage('Get EC2 Public IP') {
             steps {
                 script {
-                    def ec2Ip = sh(
+                    env.EC2_IP = sh(
                         script: "aws ec2 describe-instances --instance-ids ${params.Instance_ID} --region ${env.AWS_REGION} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text",
                         returnStdout: true
                     ).trim()
-                    env.EC2_IP = ec2Ip
                 }
             }
         }
 
-        stage('SSH to EC2 and Run Docker Container') {
+        stage('Clone GitHub Repository') {
             steps {
                 script {
-                    // Use sshagent to handle SSH key
+                    sshagent(['ec2-ssh-key']) {
+                        sh "ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} 'git clone ${params.REPO_URL} repo'"
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
                     sshagent(['test-ec2-ssh-key']) {
-                        // Create an SSH command to execute the required commands on the EC2 instance
-                        sh "ssh -o StrictHostKeyChecking=no -t ubuntu@${env.EC2_IP} sudo docker pull ${params.DOCKER_IMAGE}"
-                        sh "ssh -o StrictHostKeyChecking=no -t ubuntu@${env.EC2_IP} sudo docker run -d -p 8081:8081 ${params.DOCKER_IMAGE}"
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} '
+                            cd repo &&
+                            if [ -f Dockerfile ]; then
+                                sudo docker build -t my-app .
+                            else
+                                echo "Dockerfile not found!" && exit 1
+                            fi
+                            '
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sshagent(['test-ec2-ssh-key']) {
+                        sh "ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} 'sudo docker run -d -p 8081:8081 my-app'"
                     }
                 }
             }
