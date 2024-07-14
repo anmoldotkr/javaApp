@@ -59,7 +59,7 @@ Outputs:
   VpcId:
     Description: The VPC Id
     Value: !ImportValue 
-      'Fn::Sub': '${environment}-${product}-${service}-vpc-id'
+      'Fn::Sub': '${environment}-${product}-${service}-id'
   SubnetId:
     Description: The Subnet Id
     Value: !ImportValue 
