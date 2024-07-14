@@ -11,11 +11,18 @@ pipeline {
     stages {
         stage('Get EC2 Public IP') {
             steps {
-                script {
-                    env.EC2_IP = sh(
-                        script: "aws ec2 describe-instances --instance-ids ${params.Instance_ID} --region ${env.AWS_REGION} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text",
-                        returnStdout: true
-                    ).trim()
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        env.EC2_IP = sh(
+                            script: "aws ec2 describe-instances --instance-ids ${params.Instance_ID} --region ${env.AWS_REGION} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text",
+                            returnStdout: true
+                        ).trim()
+                    }
                 }
             }
         }
@@ -23,8 +30,14 @@ pipeline {
         stage('Clone GitHub Repository') {
             steps {
                 script {
+                    // Extract repository name from REPO_URL
+                    env.REPO_NAME = sh(
+                        script: "basename -s .git ${params.REPO_URL}",
+                        returnStdout: true
+                    ).trim()
+                    
                     sshagent(['ec2-ssh-key']) {
-                        sh "ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} 'git clone ${params.REPO_URL} repo'"
+                        sh "ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} 'git clone ${params.REPO_URL}'"
                     }
                 }
             }
@@ -33,10 +46,10 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sshagent(['test-ec2-ssh-key']) {
+                    sshagent(['ec2-ssh-key']) {
                         sh """
                             ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} '
-                            cd repo &&
+                            cd ${env.REPO_NAME} &&
                             if [ -f Dockerfile ]; then
                                 sudo docker build -t my-app .
                             else
@@ -52,7 +65,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sshagent(['test-ec2-ssh-key']) {
+                    sshagent(['ec2-ssh-key']) {
                         sh "ssh -o StrictHostKeyChecking=no ubuntu@${env.EC2_IP} 'sudo docker run -d -p 8081:8081 my-app'"
                     }
                 }
