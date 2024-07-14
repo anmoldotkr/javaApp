@@ -4,9 +4,6 @@ pipeline {
         string(name: 'Instance_ID', description: 'Enter your EC2 instance ID')
         string(name: 'DOCKER_IMAGE', description: 'Enter the Docker image to pull')
     }
-    environment {
-        AWS_REGION = 'us-east-1' // Change to your AWS region
-    }
     stages {
         stage('Get EC2 Public IP') {
             steps {
