@@ -8,7 +8,7 @@ pipeline {
     environment {
         AWS_REGION = "${params.AwsRegion}"
         AWS_SESSION_TOKEN = credentials('session-token')
-
+    }
     stages {
         stage('Get EC2 Public IP') {
             steps {
